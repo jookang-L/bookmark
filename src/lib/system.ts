@@ -6,6 +6,7 @@ import {
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { waitForUiReady } from "@/lib/window";
 
 /** 메인 창 표시/숨김 토글 (전역 단축키용) */
 export async function toggleMainWindow(): Promise<void> {
@@ -14,6 +15,7 @@ export async function toggleMainWindow(): Promise<void> {
     await w.hide();
   } else {
     await w.show();
+    await waitForUiReady();
     await w.setFocus();
   }
 }

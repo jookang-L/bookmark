@@ -31,7 +31,7 @@ import {
   closeAllPinnedWindows,
   reopenPinnedWindows,
 } from "@/windows/pinned";
-import { showPlaced, placeAtRightEdge, edgeWindowHeight } from "@/lib/window";
+import { placeAtRightEdge, edgeWindowHeight, revealPlacedWindow } from "@/lib/window";
 import { todayIso } from "@/lib/date";
 import { EMPTY_DOC } from "@/lib/tiptapContent";
 import {
@@ -55,6 +55,7 @@ function App() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [autostart, setAutostartState] = useState(false);
+  const [initComplete, setInitComplete] = useState(false);
   const fromList = useRef(false);
   const { settings, loaded: settingsLoaded, update: updateSettings } =
     useAppSettings();
@@ -75,7 +76,7 @@ function App() {
     }
   }, []);
 
-  // 시작: 휴지통 정리 → 시드 → 목록 로드 → 고정 창 복원 → 창 표시
+  // 시작: DB 초기화 → 고정 창 복원 (창 표시는 UI 준비 후 별도 effect)
   useEffect(() => {
     (async () => {
       try {
@@ -86,14 +87,30 @@ function App() {
         await reopenPinnedWindows(all);
       } catch (e) {
         console.error("초기화 실패", e);
+      } finally {
+        setInitComplete(true);
       }
-      const h = await edgeWindowHeight();
-      await showPlaced({
-        width: RIBBON_COLUMN_WIDTH,
-        height: h,
-      });
     })();
   }, []);
+
+  // UI·설정 준비 후 창 표시 (WebView2 첫 프레임 흰 띠 방지)
+  useEffect(() => {
+    if (!initComplete || !settingsLoaded) return;
+
+    let cancelled = false;
+    (async () => {
+      const h = await edgeWindowHeight();
+      const withGuide = !settings.guideSeen;
+      const contentW = withGuide ? PANEL_DEFAULT_WIDTH : 0;
+      const width = RIBBON_COLUMN_WIDTH + contentW;
+      if (cancelled) return;
+      await revealPlacedWindow({ width, height: h });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initComplete, settingsLoaded, settings.guideSeen]);
 
   // 다른 창(고정 메모)에서 바뀌면 목록 새로고침
   useEffect(() => onNotesChanged(() => void reload()), [reload]);
@@ -412,11 +429,12 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [mode, close]);
 
-  // 첫 실행 가이드: 창을 펼쳐 안내를 보여준다
+  // 첫 실행 가이드: 창 너비를 안내 패널에 맞춘다 (이미 표시된 뒤에도 리사이즈)
   const showGuide = settingsLoaded && !settings.guideSeen;
   useEffect(() => {
-    if (showGuide) void sizeWindow(PANEL_DEFAULT_WIDTH, true);
-  }, [showGuide, sizeWindow]);
+    if (!showGuide || !initComplete) return;
+    void sizeWindow(PANEL_DEFAULT_WIDTH, true);
+  }, [showGuide, initComplete, sizeWindow]);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">

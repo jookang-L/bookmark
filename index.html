@@ -1,10 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + React + Typescript</title>
+    <title>Bookmark</title>
+    <style>
+      /* JS/CSS 번들 로드 전에도 투명 창이 흰 띠로 보이지 않게 */
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        background: transparent !important;
+        overflow: hidden;
+      }
+      html:not(.app-ready) #root {
+        visibility: hidden;
+      }
+    </style>
   </head>
 
   <body>

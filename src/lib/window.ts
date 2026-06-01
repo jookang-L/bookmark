@@ -43,8 +43,44 @@ export async function placeAtRightEdge(box: WinBox): Promise<void> {
   await win.setPosition(new PhysicalPosition(x, y));
 }
 
-/** 첫 표시: 배치 후 보이게 한다(초기 위치 깜빡임 방지). */
-export async function showPlaced(box: WinBox): Promise<void> {
+/** WebView2가 첫 프레임을 그릴 때까지 대기 */
+export function waitForUiReady(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+/** Windows 투명 창 첫 표시 시 흰 띠가 남는 WebView2 버그 완화 */
+async function nudgeWindowRepaint(
+  win: ReturnType<typeof getCurrentWindow>,
+  width: number,
+  height: number,
+): Promise<void> {
+  try {
+    await win.setSize(new LogicalSize(width + 1, height));
+    await win.setSize(new LogicalSize(width, height));
+  } catch {
+    // 무시
+  }
+}
+
+/**
+ * 창을 배치한 뒤 UI가 준비되면 표시한다.
+ * CSS/React 적용 전 show()를 호출하면 흰 세로 띠가 보일 수 있다.
+ */
+export async function revealPlacedWindow(box: WinBox): Promise<void> {
   await placeAtRightEdge(box);
-  await getCurrentWindow().show();
+  await waitForUiReady();
+  document.documentElement.classList.add("app-ready");
+  const win = getCurrentWindow();
+  await win.show();
+  await waitForUiReady();
+  await nudgeWindowRepaint(win, box.width, box.height);
+}
+
+/** @deprecated revealPlacedWindow 사용 */
+export async function showPlaced(box: WinBox): Promise<void> {
+  await revealPlacedWindow(box);
 }
