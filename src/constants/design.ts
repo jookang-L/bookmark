@@ -24,9 +24,9 @@ export const BOOKMARK_SIZES: Record<
   BookmarkSize,
   { width: number; primaryHeight: number; itemHeight: number }
 > = {
-  small: { width: 26, primaryHeight: 60, itemHeight: 46 },
-  normal: { width: 30, primaryHeight: 72, itemHeight: 56 },
-  large: { width: 36, primaryHeight: 88, itemHeight: 68 },
+  small: { width: 22, primaryHeight: 56, itemHeight: 42 },
+  normal: { width: 26, primaryHeight: 68, itemHeight: 52 },
+  large: { width: 30, primaryHeight: 80, itemHeight: 62 },
 };
 
 /** 메모 패널 */
@@ -35,7 +35,7 @@ export const PANEL_MIN_WIDTH = 320;
 export const PANEL_MAX_WIDTH = 720;
 
 /** edge 창 레이아웃 (논리 px). 평소엔 리본 폭만 차지해 클릭 방해를 최소화한다. */
-export const RIBBON_COLUMN_WIDTH = 34;
+export const RIBBON_COLUMN_WIDTH = 28;
 export const EDGE_COLLAPSED_HEIGHT = 320;
 export const EDGE_EXPANDED_HEIGHT = 560;
 

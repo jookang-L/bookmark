@@ -21,6 +21,7 @@ import {
 import { tintWithWhite } from "@/lib/color";
 import { RichEditor } from "./RichEditor";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ColorPicker } from "./ColorPicker";
 import type { SaveStatus } from "@/features/notes/useAutosave";
 
 export type { SaveStatus };
@@ -117,7 +118,7 @@ export function NotePanel({
         </IconBtn>
       </div>
 
-      <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 text-sm text-slate-600">
         <button
           type="button"
           onClick={() => {
@@ -143,19 +144,25 @@ export function NotePanel({
             tabIndex={-1}
           />
         </button>
-        <select
-          value={note.importance}
-          onChange={(e) =>
-            onChange({ importance: e.target.value as Importance })
-          }
-          className="rounded-md border border-slate-200 bg-white/80 px-2 py-1 text-xs text-slate-700 outline-none"
-        >
-          {IMPORTANCE_OPTIONS.map((imp) => (
-            <option key={imp} value={imp}>
-              {IMPORTANCE_LABEL[imp]}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <ColorPicker
+            value={note.color}
+            onChange={(color) => onChange({ color })}
+          />
+          <select
+            value={note.importance}
+            onChange={(e) =>
+              onChange({ importance: e.target.value as Importance })
+            }
+            className="rounded-md border border-slate-200 bg-white/80 px-2 py-1 text-xs text-slate-700 outline-none"
+          >
+            {IMPORTANCE_OPTIONS.map((imp) => (
+              <option key={imp} value={imp}>
+                {IMPORTANCE_LABEL[imp]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <RichEditor
@@ -224,7 +231,7 @@ function IconBtn({
       title={title}
       onClick={onClick}
       className={[
-        "rounded-md p-1.5 transition-colors",
+        "flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-md p-1.5 transition-colors",
         active
           ? "bg-slate-800 text-white"
           : "text-slate-500 hover:bg-black/5 hover:text-slate-700",

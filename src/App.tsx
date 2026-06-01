@@ -431,7 +431,7 @@ function App() {
             : `translateX(${panelWidth + RIBBON_COLUMN_WIDTH}px)`,
           transitionDuration: `${PANEL_MOTION_MS}ms`,
         }}
-        className="absolute top-0 bottom-0 p-2 transition-transform ease-out"
+        className="absolute top-0 bottom-0 z-10 p-2 pr-3 transition-transform ease-out"
       >
         {mode === "note" && (
           <div
@@ -470,9 +470,10 @@ function App() {
       </div>
 
       <div
-        className="absolute top-0 right-0 bottom-0"
+        className="pointer-events-none absolute top-0 right-0 bottom-0 z-0"
         style={{ width: RIBBON_COLUMN_WIDTH, opacity: settings.bookmarkOpacity }}
       >
+        <div className="pointer-events-auto h-full">
         <EdgeRibbons
           bookmarkNotes={bookmarkNotes}
           selectedNoteId={selectedId}
@@ -481,6 +482,7 @@ function App() {
           onItemClick={handleItem}
           onReorder={reorderBookmarks}
         />
+        </div>
       </div>
 
       {showGuide && (

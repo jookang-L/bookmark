@@ -45,9 +45,9 @@ export function RibbonBookmark({
         ...ribbonTail,
       }}
       className={[
-        "group relative flex items-start justify-center rounded-l-lg pt-2 shadow-md transition-all duration-150",
-        "hover:-translate-x-0.5 hover:shadow-lg",
-        selected ? "-translate-x-1 ring-2 ring-slate-400 ring-offset-0" : "",
+        "group relative flex items-start justify-center rounded-l-md pt-2 shadow-md transition-shadow duration-150",
+        "hover:shadow-lg",
+        selected ? "ring-2 ring-slate-400 ring-offset-0" : "",
       ].join(" ")}
     >
       {isPrimary ? (

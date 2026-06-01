@@ -22,6 +22,7 @@ import { emitNotesChanged, onNotesChanged } from "@/lib/events";
 import { useAutosave } from "@/features/notes/useAutosave";
 import { RichEditor } from "./RichEditor";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ColorPicker } from "./ColorPicker";
 
 const IMPORTANCE_OPTIONS: Importance[] = [
   "low",
@@ -138,21 +139,23 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
       className="relative flex h-screen w-screen flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-2xl"
       style={{ backgroundColor: tint }}
     >
-      <div
-        data-tauri-drag-region
-        className="flex items-center gap-1 border-b border-black/5 bg-white/70 px-2 py-2 backdrop-blur"
-      >
-        <GripVertical
-          size={16}
-          className="pointer-events-none text-slate-400"
-        />
-        <input
-          value={note.title}
-          placeholder="제목 없음"
-          onChange={(e) => patch({ title: e.target.value })}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="min-w-0 flex-1 bg-transparent px-1 text-base font-semibold text-slate-800 outline-none placeholder:text-slate-400"
-        />
+      <div className="flex items-center gap-1 border-b border-black/5 bg-white/70 px-2 py-2 backdrop-blur">
+        <div
+          data-tauri-drag-region
+          className="flex min-w-0 flex-1 items-center gap-1"
+        >
+          <GripVertical
+            size={16}
+            className="pointer-events-none shrink-0 text-slate-400"
+          />
+          <input
+            value={note.title}
+            placeholder="제목 없음"
+            onChange={(e) => patch({ title: e.target.value })}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="min-w-0 flex-1 bg-transparent px-1 text-base font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+          />
+        </div>
         <IconBtn
           title="고정 해제(창 닫기)"
           onClick={() => void unpinAndClose()}
@@ -167,7 +170,7 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
         </IconBtn>
       </div>
 
-      <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 text-sm text-slate-600">
         <button
           type="button"
           onClick={() => {
@@ -193,17 +196,23 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
             tabIndex={-1}
           />
         </button>
-        <select
-          value={note.importance}
-          onChange={(e) => patch({ importance: e.target.value as Importance })}
-          className="rounded-md border border-slate-200 bg-white/80 px-2 py-1 text-xs text-slate-700 outline-none"
-        >
-          {IMPORTANCE_OPTIONS.map((imp) => (
-            <option key={imp} value={imp}>
-              {IMPORTANCE_LABEL[imp]}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <ColorPicker
+            value={note.color}
+            onChange={(color) => patch({ color })}
+          />
+          <select
+            value={note.importance}
+            onChange={(e) => patch({ importance: e.target.value as Importance })}
+            className="rounded-md border border-slate-200 bg-white/80 px-2 py-1 text-xs text-slate-700 outline-none"
+          >
+            {IMPORTANCE_OPTIONS.map((imp) => (
+              <option key={imp} value={imp}>
+                {IMPORTANCE_LABEL[imp]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <RichEditor
@@ -272,7 +281,7 @@ function IconBtn({
       title={title}
       onClick={onClick}
       onMouseDown={(e) => e.stopPropagation()}
-      className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-black/5 hover:text-slate-700"
+      className="flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-md p-1.5 text-slate-500 transition-colors hover:bg-black/5 hover:text-slate-700"
     >
       {children}
     </button>

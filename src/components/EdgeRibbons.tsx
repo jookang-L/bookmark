@@ -99,8 +99,8 @@ export function EdgeRibbons({
   const lastIndex = bookmarkNotes.length;
 
   return (
-    <div className="flex h-full flex-col items-end justify-center overflow-hidden py-3 pr-0.5">
-      <div className="flex max-h-full flex-col items-end gap-2 overflow-y-auto pr-px">
+    <div className="flex h-full flex-col items-end justify-center overflow-hidden py-2 pr-0">
+      <div className="flex max-h-full flex-col items-end gap-1 overflow-y-auto">
         <RibbonBookmark
           kind="primary"
           title="Bookmark · 전체 메모 목록"
@@ -110,7 +110,7 @@ export function EdgeRibbons({
           onClick={onPrimaryClick}
         />
 
-        <div ref={containerRef} className="flex flex-col items-end gap-2">
+        <div ref={containerRef} className="flex flex-col items-end gap-1">
           {bookmarkNotes.map((note, i) => {
             const showLineBefore =
               dragId !== null && overIndex === i && dragId !== note.id;

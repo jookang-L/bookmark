@@ -225,13 +225,13 @@ export function NoteList({
         <h1 className="text-lg font-bold tracking-tight text-slate-800">
           {APP_NAME}
         </h1>
-        <div className="flex items-center gap-1">
+        <div className="relative z-10 flex items-center gap-0.5">
           {!isTrash && selectedIds.size > 0 && (
             <button
               type="button"
               title="휴지통으로 이동"
               onClick={() => requestDelete([...selectedIds])}
-              className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
+              className="flex min-h-9 min-w-9 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50"
             >
               <Trash2 size={18} />
             </button>
@@ -240,7 +240,7 @@ export function NoteList({
             type="button"
             title="새 메모"
             onClick={onNewNote}
-            className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100"
+            className="flex min-h-9 min-w-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
           >
             <Plus size={18} />
           </button>
@@ -248,7 +248,7 @@ export function NoteList({
             type="button"
             title="투명도 설정"
             onClick={() => setSettingsOpen((v) => !v)}
-            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+            className="flex min-h-9 min-w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
           >
             <Settings2 size={18} />
           </button>
@@ -256,7 +256,7 @@ export function NoteList({
             type="button"
             title="목록 접기"
             onClick={onClose}
-            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+            className="flex min-h-9 min-w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
           >
             <X size={18} />
           </button>

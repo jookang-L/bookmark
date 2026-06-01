@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Bookmark",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "identifier": "com.bookmark.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -14,7 +14,7 @@
       {
         "label": "main",
         "title": "Bookmark",
-        "width": 34,
+        "width": 28,
         "height": 900,
         "decorations": false,
         "transparent": true,
