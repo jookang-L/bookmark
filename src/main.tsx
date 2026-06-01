@@ -4,10 +4,13 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App";
 import { PinnedNoteWindow } from "./components/PinnedNoteWindow";
 import { noteIdFromLabel } from "./windows/pinned";
+import { applyAppWindowIcon } from "./lib/window";
 import "./styles/index.css";
 
 const label = getCurrentWindow().label;
 const pinnedId = noteIdFromLabel(label);
+
+void applyAppWindowIcon();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

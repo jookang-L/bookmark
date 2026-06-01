@@ -1,5 +1,15 @@
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, currentMonitor } from "@tauri-apps/api/window";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
+
+/** Windows 작업표시줄 등에 앱 아이콘을 명시적으로 적용한다. */
+export async function applyAppWindowIcon(): Promise<void> {
+  try {
+    await invoke("apply_window_icon");
+  } catch (e) {
+    console.warn("작업표시줄 아이콘 적용 실패", e);
+  }
+}
 
 export interface WinBox {
   width: number;

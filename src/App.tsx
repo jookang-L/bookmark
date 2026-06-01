@@ -315,15 +315,22 @@ function App() {
   }
 
   function deleteNote(id: string) {
+    deleteNotes([id]);
+  }
+
+  function deleteNotes(ids: string[]) {
+    if (ids.length === 0) return;
     cancelSave();
+    const now = new Date().toISOString();
+    const idSet = new Set(ids);
     setNotes((prev) =>
       prev.map((n) =>
-        n.id === id ? { ...n, deletedAt: new Date().toISOString() } : n,
+        idSet.has(n.id) ? { ...n, deletedAt: now } : n,
       ),
     );
-    void closePinnedWindow(id);
-    void softDeleteNote(id).then(emitNotesChanged);
-    if (selectedId === id) {
+    for (const id of ids) void closePinnedWindow(id);
+    void Promise.all(ids.map((id) => softDeleteNote(id))).then(emitNotesChanged);
+    if (selectedId && idSet.has(selectedId)) {
       setSelectedId(null);
       setPanelOpen(false);
     }
@@ -455,6 +462,7 @@ function App() {
             onNewNote={newNote}
             onRestore={restore}
             onRestoreBackup={restoreFromBackupFile}
+            onDelete={deleteNotes}
             onPermanentDelete={permanentDelete}
             onClose={close}
           />

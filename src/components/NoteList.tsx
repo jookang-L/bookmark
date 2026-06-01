@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Plus,
   Search,
@@ -15,6 +15,7 @@ import { formatShortDate, isOverdue } from "@/lib/date";
 import { APP_NAME } from "@/constants/design";
 import { SettingsPopover } from "./SettingsPopover";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ContextMenu } from "./ContextMenu";
 import type { BookmarkBackup } from "@/types/backup";
 import type { AppSettings } from "@/features/settings/useAppSettings";
 
@@ -28,6 +29,7 @@ interface NoteListProps {
   onNewNote: () => void;
   onRestore: (id: string) => void;
   onRestoreBackup: (backup: BookmarkBackup) => Promise<void>;
+  onDelete: (ids: string[]) => void;
   onPermanentDelete: (id: string) => void;
   onClose: () => void;
 }
@@ -79,6 +81,7 @@ export function NoteList({
   onNewNote,
   onRestore,
   onRestoreBackup,
+  onDelete,
   onPermanentDelete,
   onClose,
 }: NoteListProps) {
@@ -87,8 +90,77 @@ export function NoteList({
   const [filter, setFilter] = useState<FilterKey>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [purgeId, setPurgeId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(
+    null,
+  );
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    noteId: string;
+  } | null>(null);
 
   const isTrash = filter === "trash";
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setContextMenu(null);
+  }, [filter, query]);
+
+  const requestDelete = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    setConfirmDeleteIds(ids);
+  }, []);
+
+  const handleRowClick = useCallback(
+    (noteId: string, e: React.MouseEvent) => {
+      if (isTrash) return;
+      if (e.ctrlKey || e.metaKey) {
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(noteId)) next.delete(noteId);
+          else next.add(noteId);
+          return next;
+        });
+      } else {
+        setSelectedIds(new Set([noteId]));
+      }
+    },
+    [isTrash],
+  );
+
+  const handleRowDoubleClick = useCallback(
+    (noteId: string) => {
+      if (!isTrash) onOpenNote(noteId);
+    },
+    [isTrash, onOpenNote],
+  );
+
+  const handleRowContextMenu = useCallback(
+    (noteId: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      if (isTrash) return;
+      setSelectedIds((prev) => {
+        if (prev.has(noteId)) return prev;
+        return new Set([noteId]);
+      });
+      setContextMenu({ x: e.clientX, y: e.clientY, noteId });
+    },
+    [isTrash],
+  );
+
+  useEffect(() => {
+    if (isTrash || selectedIds.size === 0) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      e.preventDefault();
+      requestDelete([...selectedIds]);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isTrash, selectedIds, requestDelete]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -154,6 +226,16 @@ export function NoteList({
           {APP_NAME}
         </h1>
         <div className="flex items-center gap-1">
+          {!isTrash && selectedIds.size > 0 && (
+            <button
+              type="button"
+              title="휴지통으로 이동"
+              onClick={() => requestDelete([...selectedIds])}
+              className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
           <button
             type="button"
             title="새 메모"
@@ -235,16 +317,20 @@ export function NoteList({
             {isTrash ? "휴지통이 비어 있습니다." : "표시할 메모가 없습니다."}
           </p>
         ) : (
-          visible.map((note) => (
+          visible.map((note) => {
+            const selected = !isTrash && selectedIds.has(note.id);
+            return (
             <div
               key={note.id}
-              className="group flex items-center gap-1 rounded-lg pr-1 hover:bg-slate-50"
+              className={[
+                "group flex items-center gap-1 rounded-lg pr-1",
+                selected ? "bg-sky-50 ring-1 ring-sky-200" : "hover:bg-slate-50",
+              ].join(" ")}
+              onClick={(e) => handleRowClick(note.id, e)}
+              onDoubleClick={() => handleRowDoubleClick(note.id)}
+              onContextMenu={(e) => handleRowContextMenu(note.id, e)}
             >
-              <button
-                type="button"
-                onClick={() => !isTrash && onOpenNote(note.id)}
-                className="flex min-w-0 flex-1 flex-col gap-0.5 px-3 py-2.5 text-left"
-              >
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-3 py-2.5 text-left cursor-default">
                 <div className="flex items-center gap-2">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -275,14 +361,17 @@ export function NoteList({
                 <p className="truncate pl-[18px] text-xs text-slate-400">
                   {note.contentText.replace(/\n/g, " ") || "내용 없음"}
                 </p>
-              </button>
+              </div>
 
               {isTrash && (
                 <div className="flex shrink-0 items-center gap-0.5">
                   <button
                     type="button"
                     title="복구"
-                    onClick={() => onRestore(note.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRestore(note.id);
+                    }}
                     className="rounded-md p-1.5 text-slate-500 hover:bg-slate-200"
                   >
                     <RotateCcw size={15} />
@@ -290,7 +379,10 @@ export function NoteList({
                   <button
                     type="button"
                     title="영구 삭제"
-                    onClick={() => setPurgeId(note.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPurgeId(note.id);
+                    }}
                     className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
                   >
                     <Trash2 size={15} />
@@ -298,9 +390,49 @@ export function NoteList({
                 </div>
               )}
             </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={[
+            {
+              label: "휴지통으로 이동",
+              danger: true,
+              onClick: () => {
+                const ids = selectedIds.has(contextMenu.noteId)
+                  ? [...selectedIds]
+                  : [contextMenu.noteId];
+                requestDelete(ids);
+              },
+            },
+          ]}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {confirmDeleteIds && (
+        <ConfirmDialog
+          message={
+            confirmDeleteIds.length > 1
+              ? `${confirmDeleteIds.length}개 메모를 휴지통으로 옮길까요?`
+              : "이 메모를 휴지통으로 옮길까요?"
+          }
+          detail="휴지통에서 복구할 수 있으며, 30일 후 자동 삭제됩니다."
+          confirmLabel="휴지통으로"
+          danger
+          onConfirm={() => {
+            onDelete(confirmDeleteIds);
+            setSelectedIds(new Set());
+            setConfirmDeleteIds(null);
+          }}
+          onCancel={() => setConfirmDeleteIds(null)}
+        />
+      )}
 
       {purgeId && (
         <ConfirmDialog

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="paper" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF176"/>
+      <stop offset="100%" stop-color="#FFD54F"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFCA28"/>
+      <stop offset="100%" stop-color="#FFB300"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="96" y="72" width="320" height="368" rx="18" fill="url(#paper)"/>
+    <path d="M352 72 H416 V136 L352 72 Z" fill="url(#fold)"/>
+    <path d="M352 72 V136 H416" fill="none" stroke="#F9A825" stroke-width="3" stroke-linejoin="round"/>
+
+    <rect x="136" y="148" width="200" height="14" rx="7" fill="#F9A825" opacity="0.55"/>
+    <rect x="136" y="196" width="240" height="10" rx="5" fill="#F9A825" opacity="0.35"/>
+    <rect x="136" y="232" width="220" height="10" rx="5" fill="#F9A825" opacity="0.35"/>
+    <rect x="136" y="268" width="180" height="10" rx="5" fill="#F9A825" opacity="0.35"/>
+    <rect x="136" y="304" width="210" height="10" rx="5" fill="#F9A825" opacity="0.28"/>
+  </g>
+</svg>

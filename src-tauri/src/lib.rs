@@ -1,8 +1,27 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, WebviewWindow,
 };
+
+#[tauri::command]
+fn apply_window_icon(window: WebviewWindow) -> Result<(), String> {
+    let icon = window
+        .app_handle()
+        .default_window_icon()
+        .ok_or("앱 아이콘을 찾을 수 없습니다.")?
+        .clone();
+    window.set_icon(icon).map_err(|e| e.to_string())
+}
+
+fn apply_icon_to_all_windows(app: &tauri::AppHandle) {
+    let Some(icon) = app.default_window_icon() else {
+        return;
+    };
+    for (_, window) in app.webview_windows() {
+        let _ = window.set_icon(icon.clone());
+    }
+}
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 const DB_URL: &str = "sqlite:bookmark.db";
@@ -98,8 +117,10 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![apply_window_icon])
         .setup(|app| {
             setup_tray(app)?;
+            apply_icon_to_all_windows(app.handle());
             Ok(())
         })
         .run(tauri::generate_context!())

@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-apply-window-icon"
+description = "Allows applying the bundled app icon to webview windows."
+commands.allow = ["apply_window_icon"]
