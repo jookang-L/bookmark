@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-windows:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Bookmark ${{ github.ref_name }}
+          releaseBody: |
+            Windows 설치 파일 (NSIS `.exe`, MSI).
+
+            ## 설치
+            - `Bookmark_*_x64-setup.exe` 또는 `.msi`를 받아 설치하세요.
+
+            ## 백업
+            - 앱 내 설정(⚙) → **백업**으로 `.bookmark` 파일을 내보낼 수 있습니다.
+          releaseDraft: true
+          prerelease: false
