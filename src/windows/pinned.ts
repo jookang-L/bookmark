@@ -68,8 +68,7 @@ export async function openPinnedWindow(note: Note): Promise<void> {
         if (geo) await win.setSize(new PhysicalSize(geo.w, geo.h));
         await win.center(); // 화면 밖이면 중앙으로 복귀
       }
-      await win.show();
-      await win.setFocus();
+      // show/focus는 고정 창 webview(main.tsx)에서 UI 준비 후 수행
     })();
   });
 

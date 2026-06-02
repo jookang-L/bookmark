@@ -66,6 +66,22 @@ async function nudgeWindowRepaint(
   }
 }
 
+/** React 첫 렌더 후 UI 표시 허용 (모든 창 공통) */
+export function markAppUiReady(): void {
+  document.documentElement.classList.add("app-ready");
+}
+
+/** Windows 투명 창 repaint 유도 */
+export async function refreshWindowPaint(): Promise<void> {
+  const win = getCurrentWindow();
+  const size = await win.innerSize();
+  const sf = await win.scaleFactor();
+  const w = Math.round(size.width / sf);
+  const h = Math.round(size.height / sf);
+  await waitForUiReady();
+  await nudgeWindowRepaint(win, w, h);
+}
+
 /**
  * 창을 배치한 뒤 UI가 준비되면 표시한다.
  * CSS/React 적용 전 show()를 호출하면 흰 세로 띠가 보일 수 있다.
@@ -73,7 +89,7 @@ async function nudgeWindowRepaint(
 export async function revealPlacedWindow(box: WinBox): Promise<void> {
   await placeAtRightEdge(box);
   await waitForUiReady();
-  document.documentElement.classList.add("app-ready");
+  markAppUiReady();
   const win = getCurrentWindow();
   await win.show();
   await waitForUiReady();

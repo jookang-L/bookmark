@@ -17,6 +17,7 @@ import {
   todayIso,
 } from "@/lib/date";
 import { tintWithWhite } from "@/lib/color";
+import { refreshWindowPaint } from "@/lib/window";
 import { getNote, softDeleteNote, setWinGeo } from "@/lib/db";
 import { emitNotesChanged, onNotesChanged } from "@/lib/events";
 import { useAutosave } from "@/features/notes/useAutosave";
@@ -53,6 +54,12 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
       alive = false;
     };
   }, [noteId]);
+
+  // 메모 로드 후 한 번 더 repaint (투명 창 첫 표시 보정)
+  useEffect(() => {
+    if (!note) return;
+    void refreshWindowPaint();
+  }, [note]);
 
   // 다른 창의 변경 반영 (삭제/보관/해제되면 창 닫기)
   useEffect(() => {
