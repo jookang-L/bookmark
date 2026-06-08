@@ -67,6 +67,15 @@ fn migrations() -> Vec<Migration> {
             );
         ",
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 2,
+        description: "add_remind_at",
+        sql: "
+            ALTER TABLE notes ADD COLUMN remind_at TEXT;
+            CREATE INDEX IF NOT EXISTS idx_notes_remind_at ON notes(remind_at);
+        ",
+        kind: MigrationKind::Up,
     }]
 }
 

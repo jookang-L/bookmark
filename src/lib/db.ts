@@ -1,6 +1,5 @@
 import Database from "@tauri-apps/plugin-sql";
 import type { Importance, Note } from "@/types/note";
-import { TRASH_RETENTION_DAYS } from "@/constants/design";
 
 const DB_URL = "sqlite:bookmark.db";
 
@@ -49,6 +48,7 @@ interface NoteRow {
   is_panel_pinned: number;
   is_archived: number;
   deleted_at: string | null;
+  remind_at: string | null;
 }
 
 function rowToNote(r: NoteRow): Note {
@@ -69,13 +69,14 @@ function rowToNote(r: NoteRow): Note {
     isPanelPinned: r.is_panel_pinned === 1,
     isArchived: r.is_archived === 1,
     deletedAt: r.deleted_at,
+    remindAt: r.remind_at ?? null,
   };
 }
 
 export async function listAllNotes(): Promise<Note[]> {
   const db = await getDb();
   const rows = await db.select<NoteRow[]>(
-    "SELECT * FROM notes ORDER BY updated_at DESC",
+    "SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY updated_at DESC",
   );
   return rows.map(rowToNote);
 }
@@ -96,8 +97,8 @@ export function saveNote(n: Note): Promise<void> {
       `INSERT OR REPLACE INTO notes (
          id, title, content, content_text, note_date, created_at, updated_at,
          importance, show_as_bookmark, bookmark_order, color, opacity,
-         panel_width, is_panel_pinned, is_archived, deleted_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+         panel_width, is_panel_pinned, is_archived, deleted_at, remind_at
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
       [
         n.id,
         n.title,
@@ -115,6 +116,7 @@ export function saveNote(n: Note): Promise<void> {
         n.isPanelPinned ? 1 : 0,
         n.isArchived ? 1 : 0,
         n.deletedAt,
+        n.remindAt,
       ],
     );
   });
@@ -135,23 +137,6 @@ export function setBookmarkOrders(
   });
 }
 
-export function softDeleteNote(id: string): Promise<void> {
-  return enqueueWrite(async () => {
-    const db = await getDb();
-    await db.execute("UPDATE notes SET deleted_at=$1 WHERE id=$2", [
-      new Date().toISOString(),
-      id,
-    ]);
-  });
-}
-
-export function restoreNote(id: string): Promise<void> {
-  return enqueueWrite(async () => {
-    const db = await getDb();
-    await db.execute("UPDATE notes SET deleted_at=NULL WHERE id=$1", [id]);
-  });
-}
-
 export function hardDeleteNote(id: string): Promise<void> {
   return enqueueWrite(async () => {
     const db = await getDb();
@@ -159,18 +144,11 @@ export function hardDeleteNote(id: string): Promise<void> {
   });
 }
 
-/** 휴지통에서 30일 지난 메모 영구 삭제 (앱 시작 시 호출) */
-export function purgeExpiredTrash(): Promise<number> {
+/** 예전 휴지통(soft delete)에 남아 있는 메모를 앱 시작 시 영구 삭제 */
+export function purgeTrashedNotes(): Promise<void> {
   return enqueueWrite(async () => {
     const db = await getDb();
-    const cutoff = new Date(
-      Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    const res = await db.execute(
-      "DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < $1",
-      [cutoff],
-    );
-    return res.rowsAffected;
+    await db.execute("DELETE FROM notes WHERE deleted_at IS NOT NULL");
   });
 }
 
@@ -256,8 +234,8 @@ export function restoreFromBackup(
         `INSERT INTO notes (
            id, title, content, content_text, note_date, created_at, updated_at,
            importance, show_as_bookmark, bookmark_order, color, opacity,
-           panel_width, is_panel_pinned, is_archived, deleted_at
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+           panel_width, is_panel_pinned, is_archived, deleted_at, remind_at
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
         [
           n.id,
           n.title,
@@ -275,6 +253,7 @@ export function restoreFromBackup(
           n.isPanelPinned ? 1 : 0,
           n.isArchived ? 1 : 0,
           n.deletedAt,
+          n.remindAt,
         ],
       );
     };

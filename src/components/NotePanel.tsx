@@ -22,6 +22,7 @@ import { tintWithWhite } from "@/lib/color";
 import { RichEditor } from "./RichEditor";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ColorPicker } from "./ColorPicker";
+import { ReminderEditor } from "./ReminderEditor";
 import type { SaveStatus } from "@/features/notes/useAutosave";
 
 export type { SaveStatus };
@@ -110,7 +111,7 @@ export function NotePanel({
             <Archive size={18} />
           )}
         </IconBtn>
-        <IconBtn title="휴지통으로 이동" onClick={() => setConfirmDelete(true)}>
+        <IconBtn title="삭제" onClick={() => setConfirmDelete(true)}>
           <Trash2 size={18} />
         </IconBtn>
         <IconBtn title="패널 접기" onClick={onClose}>
@@ -165,6 +166,12 @@ export function NotePanel({
         </div>
       </div>
 
+      <ReminderEditor
+        remindAt={note.remindAt}
+        noteDate={note.noteDate}
+        onChange={(remindAt) => onChange({ remindAt })}
+      />
+
       <RichEditor
         noteId={note.id}
         initialContent={note.content}
@@ -177,9 +184,9 @@ export function NotePanel({
 
       {confirmDelete && (
         <ConfirmDialog
-          message="이 메모를 휴지통으로 옮길까요?"
-          detail="휴지통에서 복구할 수 있으며, 30일 후 자동 삭제됩니다."
-          confirmLabel="휴지통으로"
+          message="이 메모를 삭제할까요?"
+          detail="삭제하면 되돌릴 수 없습니다."
+          confirmLabel="삭제"
           danger
           onConfirm={() => {
             setConfirmDelete(false);

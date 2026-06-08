@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { EdgeRibbons } from "@/components/EdgeRibbons";
 import { NotePanel } from "@/components/NotePanel";
 import { NoteList } from "@/components/NoteList";
@@ -16,21 +17,21 @@ import {
 } from "@/lib/system";
 import {
   listAllNotes,
-  softDeleteNote,
-  restoreNote,
   hardDeleteNote,
-  purgeExpiredTrash,
+  purgeTrashedNotes,
   setBookmarkOrders,
   restoreFromBackup,
 } from "@/lib/db";
 import type { BookmarkBackup } from "@/types/backup";
-import { emitNotesChanged, onNotesChanged } from "@/lib/events";
+import { emitNotesChanged, onNotesChanged, onReminderOpenNote } from "@/lib/events";
+import { useReminderScheduler } from "@/features/reminders/useReminderScheduler";
 import {
   openPinnedWindow,
   closePinnedWindow,
   closeAllPinnedWindows,
   reopenPinnedWindows,
 } from "@/windows/pinned";
+import { closeReminderWindow } from "@/windows/reminder";
 import { placeAtRightEdge, edgeWindowHeight, revealPlacedWindow } from "@/lib/window";
 import { todayIso } from "@/lib/date";
 import { EMPTY_DOC } from "@/lib/tiptapContent";
@@ -80,7 +81,7 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        await purgeExpiredTrash();
+        await purgeTrashedNotes();
         await seedIfEmpty();
         const all = await listAllNotes();
         setNotes(all);
@@ -114,6 +115,9 @@ function App() {
 
   // 다른 창(고정 메모)에서 바뀌면 목록 새로고침
   useEffect(() => onNotesChanged(() => void reload()), [reload]);
+
+  // 예약 알림 감시 (앱 실행 중)
+  useReminderScheduler(notes, initComplete);
 
   // 포커스 잃을 때 / 종료 직전 즉시 저장
   useEffect(() => {
@@ -193,6 +197,25 @@ function App() {
     [mode, sizeWindow],
   );
 
+  // 알림 팝업 → 메모 열기
+  useEffect(() => {
+    return onReminderOpenNote((noteId) => {
+      void (async () => {
+        const win = getCurrentWindow();
+        await win.show();
+        await win.setFocus();
+        const target = notes.find((n) => n.id === noteId);
+        if (target?.isPanelPinned) {
+          void openPinnedWindow(target);
+          return;
+        }
+        fromList.current = false;
+        setSelectedId(noteId);
+        await openContent("note", target?.panelWidth ?? PANEL_DEFAULT_WIDTH);
+      })();
+    });
+  }, [notes, openContent]);
+
   const close = useCallback(() => {
     void flush();
     setPanelOpen(false);
@@ -256,6 +279,7 @@ function App() {
       isPanelPinned: false,
       isArchived: false,
       deletedAt: null,
+      remindAt: null,
     };
     void flush();
     setNotes((prev) => [note, ...prev]);
@@ -273,6 +297,7 @@ function App() {
   function patchSelected(patch: Partial<Note>) {
     if (!selected) return;
     const updated = { ...selected, ...patch, updatedAt: todayIso() };
+    if (updated.isArchived) updated.remindAt = null;
     setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
 
     // 고정 토글: 별도 창으로 분리/회수
@@ -338,32 +363,17 @@ function App() {
   function deleteNotes(ids: string[]) {
     if (ids.length === 0) return;
     cancelSave();
-    const now = new Date().toISOString();
     const idSet = new Set(ids);
-    setNotes((prev) =>
-      prev.map((n) =>
-        idSet.has(n.id) ? { ...n, deletedAt: now } : n,
-      ),
-    );
-    for (const id of ids) void closePinnedWindow(id);
-    void Promise.all(ids.map((id) => softDeleteNote(id))).then(emitNotesChanged);
+    setNotes((prev) => prev.filter((n) => !idSet.has(n.id)));
+    for (const id of ids) {
+      void closePinnedWindow(id);
+      void closeReminderWindow(id);
+    }
+    void Promise.all(ids.map((id) => hardDeleteNote(id))).then(emitNotesChanged);
     if (selectedId && idSet.has(selectedId)) {
       setSelectedId(null);
       setPanelOpen(false);
     }
-  }
-
-  function restore(id: string) {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, deletedAt: null } : n)),
-    );
-    void restoreNote(id).then(emitNotesChanged);
-  }
-
-  function permanentDelete(id: string) {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-    void closePinnedWindow(id);
-    void hardDeleteNote(id).then(emitNotesChanged);
   }
 
   function reorderBookmarks(orderedIds: string[]) {
@@ -478,10 +488,8 @@ function App() {
             onToggleAutostart={toggleAutostart}
             onOpenNote={openNoteFromList}
             onNewNote={newNote}
-            onRestore={restore}
             onRestoreBackup={restoreFromBackupFile}
             onDelete={deleteNotes}
-            onPermanentDelete={permanentDelete}
             onClose={close}
           />
         ) : null}

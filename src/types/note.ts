@@ -24,6 +24,8 @@ export interface Note {
   isPanelPinned: boolean;
   isArchived: boolean;
   deletedAt: string | null;
+  /** 알림 예정 시각 (ISO). null이면 알림 없음 */
+  remindAt: string | null;
 }
 
 export const IMPORTANCE_LABEL: Record<Importance, string> = {

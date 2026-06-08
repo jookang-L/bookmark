@@ -5,13 +5,13 @@ import {
   Bookmark,
   X,
   Settings2,
-  RotateCcw,
   Trash2,
+  Bell,
 } from "lucide-react";
 import { isToday, isThisWeek, isThisMonth } from "date-fns";
 import type { Importance, Note } from "@/types/note";
 import { IMPORTANCE_LABEL } from "@/types/note";
-import { formatShortDate, isOverdue } from "@/lib/date";
+import { formatShortDate, formatRemindAt, isOverdue } from "@/lib/date";
 import { APP_NAME } from "@/constants/design";
 import { SettingsPopover } from "./SettingsPopover";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -27,10 +27,8 @@ interface NoteListProps {
   onToggleAutostart: (on: boolean) => void;
   onOpenNote: (id: string) => void;
   onNewNote: () => void;
-  onRestore: (id: string) => void;
   onRestoreBackup: (backup: BookmarkBackup) => Promise<void>;
   onDelete: (ids: string[]) => void;
-  onPermanentDelete: (id: string) => void;
   onClose: () => void;
 }
 
@@ -42,8 +40,7 @@ type FilterKey =
   | "month"
   | "important"
   | "bookmarked"
-  | "archived"
-  | "trash";
+  | "archived";
 
 const SORT_LABEL: Record<SortKey, string> = {
   dateAsc: "메모 날짜 가까운 순",
@@ -61,7 +58,6 @@ const FILTER_LABEL: Record<FilterKey, string> = {
   important: "중요 메모",
   bookmarked: "책갈피에 표시",
   archived: "보관된 메모",
-  trash: "휴지통",
 };
 
 const IMPORTANCE_RANK: Record<Importance, number> = {
@@ -79,17 +75,14 @@ export function NoteList({
   onToggleAutostart,
   onOpenNote,
   onNewNote,
-  onRestore,
   onRestoreBackup,
   onDelete,
-  onPermanentDelete,
   onClose,
 }: NoteListProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("dateAsc");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [purgeId, setPurgeId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(
     null,
@@ -99,8 +92,6 @@ export function NoteList({
     y: number;
     noteId: string;
   } | null>(null);
-
-  const isTrash = filter === "trash";
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -114,7 +105,6 @@ export function NoteList({
 
   const handleRowClick = useCallback(
     (noteId: string, e: React.MouseEvent) => {
-      if (isTrash) return;
       if (e.ctrlKey || e.metaKey) {
         setSelectedIds((prev) => {
           const next = new Set(prev);
@@ -126,31 +116,30 @@ export function NoteList({
         setSelectedIds(new Set([noteId]));
       }
     },
-    [isTrash],
+    [],
   );
 
   const handleRowDoubleClick = useCallback(
     (noteId: string) => {
-      if (!isTrash) onOpenNote(noteId);
+      onOpenNote(noteId);
     },
-    [isTrash, onOpenNote],
+    [onOpenNote],
   );
 
   const handleRowContextMenu = useCallback(
     (noteId: string, e: React.MouseEvent) => {
       e.preventDefault();
-      if (isTrash) return;
       setSelectedIds((prev) => {
         if (prev.has(noteId)) return prev;
         return new Set([noteId]);
       });
       setContextMenu({ x: e.clientX, y: e.clientY, noteId });
     },
-    [isTrash],
+    [],
   );
 
   useEffect(() => {
-    if (isTrash || selectedIds.size === 0) return;
+    if (selectedIds.size === 0) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Delete" && e.key !== "Backspace") return;
       const tag = (e.target as HTMLElement).tagName;
@@ -160,18 +149,16 @@ export function NoteList({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isTrash, selectedIds, requestDelete]);
+  }, [selectedIds, requestDelete]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let rows: Note[];
 
-    if (filter === "trash") {
-      rows = notes.filter((n) => n.deletedAt);
-    } else if (filter === "archived") {
-      rows = notes.filter((n) => n.isArchived && !n.deletedAt);
+    if (filter === "archived") {
+      rows = notes.filter((n) => n.isArchived);
     } else {
-      rows = notes.filter((n) => !n.isArchived && !n.deletedAt);
+      rows = notes.filter((n) => !n.isArchived);
       rows = rows.filter((n) => {
         const d = new Date(n.noteDate);
         switch (filter) {
@@ -226,10 +213,10 @@ export function NoteList({
           {APP_NAME}
         </h1>
         <div className="relative z-10 flex items-center gap-0.5">
-          {!isTrash && selectedIds.size > 0 && (
+          {selectedIds.size > 0 && (
             <button
               type="button"
-              title="휴지통으로 이동"
+              title="삭제"
               onClick={() => requestDelete([...selectedIds])}
               className="flex min-h-9 min-w-9 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50"
             >
@@ -314,11 +301,11 @@ export function NoteList({
       <div className="flex-1 overflow-y-auto px-2 pb-3">
         {visible.length === 0 ? (
           <p className="px-3 py-8 text-center text-sm text-slate-400">
-            {isTrash ? "휴지통이 비어 있습니다." : "표시할 메모가 없습니다."}
+            표시할 메모가 없습니다.
           </p>
         ) : (
           visible.map((note) => {
-            const selected = !isTrash && selectedIds.has(note.id);
+            const selected = selectedIds.has(note.id);
             return (
             <div
               key={note.id}
@@ -346,7 +333,7 @@ export function NoteList({
                 <div className="flex items-center gap-1.5 pl-[18px] text-xs">
                   <span
                     className={
-                      !isTrash && isOverdue(note.noteDate)
+                      isOverdue(note.noteDate)
                         ? "font-semibold text-rose-500"
                         : "text-slate-500"
                     }
@@ -357,38 +344,24 @@ export function NoteList({
                   <span className="text-slate-500">
                     {IMPORTANCE_LABEL[note.importance]}
                   </span>
+                  {note.remindAt && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span
+                        className="inline-flex items-center gap-0.5 text-amber-600"
+                        title={`알림 ${formatRemindAt(note.remindAt)}`}
+                      >
+                        <Bell size={11} />
+                        {formatRemindAt(note.remindAt)}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <p className="truncate pl-[18px] text-xs text-slate-400">
                   {note.contentText.replace(/\n/g, " ") || "내용 없음"}
                 </p>
               </div>
 
-              {isTrash && (
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <button
-                    type="button"
-                    title="복구"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRestore(note.id);
-                    }}
-                    className="rounded-md p-1.5 text-slate-500 hover:bg-slate-200"
-                  >
-                    <RotateCcw size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    title="영구 삭제"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPurgeId(note.id);
-                    }}
-                    className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              )}
             </div>
             );
           })
@@ -401,7 +374,7 @@ export function NoteList({
           y={contextMenu.y}
           items={[
             {
-              label: "휴지통으로 이동",
+              label: "삭제",
               danger: true,
               onClick: () => {
                 const ids = selectedIds.has(contextMenu.noteId)
@@ -419,11 +392,11 @@ export function NoteList({
         <ConfirmDialog
           message={
             confirmDeleteIds.length > 1
-              ? `${confirmDeleteIds.length}개 메모를 휴지통으로 옮길까요?`
-              : "이 메모를 휴지통으로 옮길까요?"
+              ? `${confirmDeleteIds.length}개 메모를 삭제할까요?`
+              : "이 메모를 삭제할까요?"
           }
-          detail="휴지통에서 복구할 수 있으며, 30일 후 자동 삭제됩니다."
-          confirmLabel="휴지통으로"
+          detail="삭제하면 되돌릴 수 없습니다."
+          confirmLabel="삭제"
           danger
           onConfirm={() => {
             onDelete(confirmDeleteIds);
@@ -434,19 +407,6 @@ export function NoteList({
         />
       )}
 
-      {purgeId && (
-        <ConfirmDialog
-          message="이 메모를 영구 삭제할까요?"
-          detail="영구 삭제하면 되돌릴 수 없습니다."
-          confirmLabel="영구 삭제"
-          danger
-          onConfirm={() => {
-            onPermanentDelete(purgeId);
-            setPurgeId(null);
-          }}
-          onCancel={() => setPurgeId(null)}
-        />
-      )}
     </div>
   );
 }

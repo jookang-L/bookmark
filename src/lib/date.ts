@@ -35,3 +35,33 @@ export function fromDateInputValue(v: string): string {
   const [y, m, d] = v.split("-").map(Number);
   return new Date(y, m - 1, d, 12, 0, 0).toISOString();
 }
+
+/** ISO → <input type="datetime-local"> 값 */
+export function toDateTimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** datetime-local → ISO (로컬 시각) */
+export function fromDateTimeLocalValue(v: string): string {
+  const [datePart, timePart = "09:00"] = v.split("T");
+  const [y, m, d] = datePart.split("-").map(Number);
+  const [hh, mm] = timePart.split(":").map(Number);
+  return new Date(y, m - 1, d, hh, mm, 0, 0).toISOString();
+}
+
+/** 알림 시각 표시: "6월 5일 14:30" */
+export function formatRemindAt(iso: string): string {
+  return format(new Date(iso), "M월 d일 HH:mm", { locale: ko });
+}
+
+export function addMinutes(d: Date, minutes: number): Date {
+  return new Date(d.getTime() + minutes * 60_000);
+}
+
+export function setLocalTime(d: Date, hours: number, minutes = 0): Date {
+  const next = new Date(d);
+  next.setHours(hours, minutes, 0, 0);
+  return next;
+}

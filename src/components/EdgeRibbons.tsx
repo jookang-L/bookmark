@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { RibbonBookmark } from "./RibbonBookmark";
 import type { Note } from "@/types/note";
 import { BOOKMARK_SIZES, type BookmarkSize } from "@/constants/design";
+import { notePreviewText } from "@/lib/noteText";
 
 interface EdgeRibbonsProps {
   bookmarkNotes: Note[];
@@ -136,6 +137,8 @@ export function EdgeRibbons({
                   kind="item"
                   color={note.color}
                   title={note.title}
+                  preview={notePreviewText(note.contentText)}
+                  hasReminder={!!note.remindAt}
                   importance={note.importance}
                   width={dim.width}
                   height={dim.itemHeight}

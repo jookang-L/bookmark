@@ -53,6 +53,3 @@ export const DEFAULT_HOTKEY = "CommandOrControl+Shift+B";
 
 /** 자동 저장 디바운스 */
 export const AUTOSAVE_DEBOUNCE_MS = 500;
-
-/** 휴지통 자동 영구삭제 기준 */
-export const TRASH_RETENTION_DAYS = 30;

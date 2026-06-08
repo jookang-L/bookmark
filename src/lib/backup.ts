@@ -38,6 +38,8 @@ function parseNote(raw: unknown): Note | null {
   if (typeof o.isPanelPinned !== "boolean") return null;
   if (typeof o.isArchived !== "boolean") return null;
   if (o.deletedAt !== null && typeof o.deletedAt !== "string") return null;
+  if (o.remindAt !== undefined && o.remindAt !== null && typeof o.remindAt !== "string")
+    return null;
 
   return {
     id: o.id,
@@ -56,6 +58,7 @@ function parseNote(raw: unknown): Note | null {
     isPanelPinned: o.isPanelPinned,
     isArchived: o.isArchived,
     deletedAt: o.deletedAt as string | null,
+    remindAt: (o.remindAt as string | null | undefined) ?? null,
   };
 }
 

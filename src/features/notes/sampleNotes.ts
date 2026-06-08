@@ -38,6 +38,7 @@ function makeSeed(
     isPanelPinned: false,
     isArchived: false,
     deletedAt: null,
+    remindAt: null,
   };
 }
 

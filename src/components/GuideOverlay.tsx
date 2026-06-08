@@ -20,7 +20,7 @@ export function GuideOverlay({ hotkey, onClose }: GuideOverlayProps) {
             화면 오른쪽 가장자리의 책갈피를 클릭하면 메모가 열립니다.
           </GuideRow>
           <GuideRow icon={<MousePointerClick size={16} />}>
-            맨 위 대표 책갈피로 전체 목록(검색·정렬·필터·휴지통)을 엽니다.
+            맨 위 대표 책갈피로 전체 목록(검색·정렬·필터)을 엽니다.
           </GuideRow>
           <GuideRow icon={<Pin size={16} />}>
             메모의 핀을 켜면 독립 창으로 분리되어 다른 모니터에도 둘 수 있습니다.

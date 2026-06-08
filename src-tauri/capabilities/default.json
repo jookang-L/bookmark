@@ -4,7 +4,8 @@
   "description": "Capability for the main and pinned note windows",
   "windows": [
     "main",
-    "note-*"
+    "note-*",
+    "reminder-*"
   ],
   "permissions": [
     "core:default",

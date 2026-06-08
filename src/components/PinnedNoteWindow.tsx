@@ -18,12 +18,13 @@ import {
 } from "@/lib/date";
 import { tintWithWhite } from "@/lib/color";
 import { refreshWindowPaint } from "@/lib/window";
-import { getNote, softDeleteNote, setWinGeo } from "@/lib/db";
+import { getNote, hardDeleteNote, setWinGeo } from "@/lib/db";
 import { emitNotesChanged, onNotesChanged } from "@/lib/events";
 import { useAutosave } from "@/features/notes/useAutosave";
 import { RichEditor } from "./RichEditor";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ColorPicker } from "./ColorPicker";
+import { ReminderEditor } from "./ReminderEditor";
 
 const IMPORTANCE_OPTIONS: Importance[] = [
   "low",
@@ -114,6 +115,7 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
       setNote((prev) => {
         if (!prev) return prev;
         const next = { ...prev, ...p, updatedAt: todayIso() };
+        if (next.isArchived) next.remindAt = null;
         schedule(next);
         if (p.title !== undefined)
           void getCurrentWindow().setTitle(next.title || "메모");
@@ -132,7 +134,7 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
   }, [note, flush, saveNow]);
 
   const doDelete = useCallback(async () => {
-    await softDeleteNote(noteId);
+    await hardDeleteNote(noteId);
     emitNotesChanged();
     await getCurrentWindow().close();
   }, [noteId]);
@@ -169,7 +171,7 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
         >
           <PinOff size={18} />
         </IconBtn>
-        <IconBtn title="휴지통으로 이동" onClick={() => setConfirmDelete(true)}>
+        <IconBtn title="삭제" onClick={() => setConfirmDelete(true)}>
           <Trash2 size={18} />
         </IconBtn>
         <IconBtn title="닫기(고정 해제)" onClick={() => void unpinAndClose()}>
@@ -222,6 +224,12 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
         </div>
       </div>
 
+      <ReminderEditor
+        remindAt={note.remindAt}
+        noteDate={note.noteDate}
+        onChange={(remindAt) => patch({ remindAt })}
+      />
+
       <RichEditor
         noteId={note.id}
         initialContent={note.content}
@@ -242,9 +250,9 @@ export function PinnedNoteWindow({ noteId }: { noteId: string }) {
 
       {confirmDelete && (
         <ConfirmDialog
-          message="이 메모를 휴지통으로 옮길까요?"
-          detail="휴지통에서 복구할 수 있으며, 30일 후 자동 삭제됩니다."
-          confirmLabel="휴지통으로"
+          message="이 메모를 삭제할까요?"
+          detail="삭제하면 되돌릴 수 없습니다."
+          confirmLabel="삭제"
           danger
           onConfirm={() => {
             setConfirmDelete(false);
